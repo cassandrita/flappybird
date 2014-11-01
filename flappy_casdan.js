@@ -4,7 +4,7 @@ var stateActions = { preload: preload, create: create, update: update };
 var game = new Phaser.Game(700, 400, Phaser.AUTO, 'game', stateActions);
 var score= 0;
 var player;
-
+var pipes;
 
 
 /*
@@ -24,12 +24,13 @@ function preload() {
  * Initialises the game. This function is only called once.
  */
 function create() {
+
+    game.physics.startSystem(Phaser.Physics.ARCADE)
+
+
     game.stage.setBackgroundColor("#FF9CDE");
     game.add.text(90, 200, "Welcome to flappy bird!", {font: "20px Arial", fill: "0000FF"});
     game.add.audio("score");
-    var x = 100;
-    var y = 200;
-    player = game.add.sprite(x, y, "playerImg1");
 
     game.input.onDown.add(clickHandler)
     game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR).onDown.add(spaceHandler);
@@ -38,29 +39,48 @@ function create() {
     game.input.keyboard.addKey(Phaser.Keyboard.UP).onDown.add(upHandler);
     game.input.keyboard.addKey(Phaser.Keyboard.DOWN).onDown.add(downHandler);
 
-    var pipePosition = 0;
-    for (var pipeN = 0; pipeN < 7; pipeN++) {
-        var gapStart = Math.floor(Math.random() * 5)+1;
-        var gapSize = Math.floor(Math.random() * 3)+1;
-        var blockDist=Math.floor(Math.random()*100)+80;
-        pipePosition = pipePosition + blockDist;
+    pipes=game.add.group();
+    //generate_pipes();
+    game.time.events.loop(1.5*Phaser.Timer.SECOND,generate_pipes)
 
-        //floor>integer
-        for (var count = 0; count < gapStart; count++) {
-            // count++ must start from count=0, y coordinate changes
-            //game.add.text(20,20*count,"clap");
-            game.add.sprite(pipePosition, 50 * (count), "playerImg6")
-        }
-        for (var count = gapStart + gapSize; count < 8; count++) {
-            game.add.sprite(pipePosition, 50 * (count), "playerImg6");
-        }
-    }
+    var x = 100;
+    var y = 200;
+    //set initial coordinates for player
+    player = game.add.sprite(x, y, "playerImg1");
+    game.physics.arcade.enable(player);
+    //centre player image
+    //player.anchor.setTo(0.5,0.5);
+    //make sure player within the screen
+    //player.checkWorldBounds=true;
+    player.body.velocity.y=-100;
+    player.body.velocity.x=0;
+    player.body.gravity.y=150;
 }
+
+function generate_pipes() {
+    var pipe_offset = 700;
+
+    var gapStart = Math.floor(Math.random() * 5) + 1;
+    var gapSize =  3;
+
+    //floor>integer
+    for (var count = 0; count < gapStart; count++) {
+        // count++ must start from count=0, y coordinate changes
+        //game.add.text(20,20*count,"clap");
+        add_pipe_part(pipe_offset, 50 * (count), "playerImg6")
+    }
+    for (var count = gapStart + gapSize; count < 8; count++) {
+        add_pipe_part(pipe_offset, 50 * (count), "playerImg6");
+    }
+
+}
+
+
 
     function clickHandler(event){
         //alert(event.x+":"+event.y)
-        game.add.sprite(event.x,event.y, "playerImg5")
-        game.sound.play("score")
+        //game.add.sprite(event.x,event.y, "playerImg5")
+       // game.sound.play("score")
         //alert(score);
 
     }
@@ -70,6 +90,11 @@ function spaceHandler(){
     //game.sound.play("score");
     //game.add.sprite(Math.random()*350,Math.random()*350, "playerImg5");
     //score=score+3;
+    player_jump();
+}
+
+function player_jump(){
+    player.body.velocity.y=-100;
 }
 function leftHandler(){
     moveLeft();
@@ -96,10 +121,22 @@ function moveUp(){
 function moveDown(){
     player.y=player.y+10
 }
+
+function add_pipe_part(x,y, pipe_part){
+    var pipe=pipes.create(x,y,pipe_part);
+    game.physics.arcade.enable(pipe);
+    pipe.body.velocity.x=-200;
+}
+function game_over(){
+    //alert("GAME OVER!");
+    //location.reload();
+    player.body.velocity.y = 0;
+    game.physics.disable(pipes, Phaser.Physics.ARCADE);
+}
 /*
  * This function updates the scene. It is called for every new frame.
  */
 function update() {
-
+game.physics.arcade.overlap(player,pipes,game_over);
 }
 
